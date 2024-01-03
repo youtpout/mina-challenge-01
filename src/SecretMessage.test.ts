@@ -104,7 +104,7 @@ describe('Add', () => {
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
     const tx2 = await Mina.transaction(newAccount.publicKey, () => {
-      zkApp.addMessage(Field(1234));
+      zkApp.addMessage(newAccount.publicKey, Field(1234));
     });
     await tx2.prove();
     await tx2.sign([newAccount.privateKey, zkAppPrivateKey]).send();
