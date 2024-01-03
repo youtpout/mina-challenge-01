@@ -9,6 +9,8 @@ import {
   method,
   state,
   Permissions,
+  Account,
+  UInt64,
 } from 'o1js';
 
 export class SecretMessage extends SmartContract {
@@ -16,6 +18,17 @@ export class SecretMessage extends SmartContract {
 
   init() {
     super.init();
+
+    const permissionToEdit = Permissions.proof();
+
+    this.account.permissions.set({
+      ...Permissions.default(),
+      editState: permissionToEdit,
+      setTokenSymbol: permissionToEdit,
+      send: permissionToEdit,
+      receive: permissionToEdit,
+    });
+
     this.num.set(Field(0));
   }
 
@@ -23,27 +36,22 @@ export class SecretMessage extends SmartContract {
     const currentState = this.num.getAndRequireEquals();
     currentState.assertLessThan(100);
 
-    const accountUpdate = AccountUpdate.createSigned(address, this.token.id);
+    let account = Account(address, this.token.id);
 
-    // only new address can be added
-    accountUpdate.account.isNew.getAndRequireEquals().assertTrue();
+    // need to be a new account
+    account.isNew.getAndRequireEquals().assertTrue();
 
-    accountUpdate.body.update.permissions = {
-      isSome: Bool(true),
-      value: {
-        ...Permissions.default(),
-        editState: Permissions.signature(),
-      },
-    };
-    accountUpdate.body.update.appState[0] = {
-      isSome: Bool(true),
-      value: Field(1),
-    };
+    this.token.mint({ address, amount: 1 });
 
-    currentState.add(1);
+    this.num.set(currentState.add(1));
   }
 
   @method addMessage(message: Field) {
+    let account = Account(this.address, this.token.id);
+    let balance = account.balance.getAndRequireEquals();
+    //
+    balance.assertEquals(new UInt64(1));
+
     const accountUpdate = AccountUpdate.createSigned(
       this.sender,
       this.token.id
@@ -62,7 +70,7 @@ class TokenAccount extends SmartContract {
   @method addMessage(value: Field) {
     const oldValue = this.value.getAndRequireEquals();
     // address can only deposit 1 message
-    oldValue.assertEquals(Field(1));
+    oldValue.assertEquals(Field(0));
     this.value.set(value);
   }
 }

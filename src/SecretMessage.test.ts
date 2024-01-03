@@ -1,4 +1,4 @@
-import { Add } from './Add';
+import { SecretMessage } from './SecretMessage';
 import { Field, Mina, PrivateKey, PublicKey, AccountUpdate } from 'o1js';
 
 /*
@@ -17,10 +17,10 @@ describe('Add', () => {
     senderKey: PrivateKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
-    zkApp: Add;
+    zkApp: SecretMessage;
 
   beforeAll(async () => {
-    if (proofsEnabled) await Add.compile();
+    if (proofsEnabled) await SecretMessage.compile();
   });
 
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('Add', () => {
       Local.testAccounts[1]);
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
-    zkApp = new Add(zkAppAddress);
+    zkApp = new SecretMessage(zkAppAddress);
   });
 
   async function localDeploy() {
@@ -45,23 +45,29 @@ describe('Add', () => {
     await txn.sign([deployerKey, zkAppPrivateKey]).send();
   }
 
-  it('generates and deploys the `Add` smart contract', async () => {
+  it('generates and deploys the `SecretMessage` smart contract', async () => {
     await localDeploy();
     const num = zkApp.num.get();
-    expect(num).toEqual(Field(1));
+    expect(num).toEqual(Field(0));
   });
 
-  it('correctly updates the num state on the `Add` smart contract', async () => {
+  it('correctly add an address', async () => {
     await localDeploy();
+
+    const Local = Mina.LocalBlockchain({ proofsEnabled });
+
+    const newAccount = Local.testAccounts[2];
 
     // update transaction
     const txn = await Mina.transaction(senderAccount, () => {
-      zkApp.update();
+      AccountUpdate.fundNewAccount(senderAccount);
+      zkApp.addAddress(newAccount.publicKey);
     });
     await txn.prove();
-    await txn.sign([senderKey]).send();
+    await txn.sign([senderKey, zkAppPrivateKey]).send();
 
     const updatedNum = zkApp.num.get();
-    expect(updatedNum).toEqual(Field(3));
+    console.log('updatedNum', updatedNum);
+    expect(updatedNum).toEqual(Field(1));
   });
 });
