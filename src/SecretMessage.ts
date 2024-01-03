@@ -36,12 +36,11 @@ export class SecretMessage extends SmartContract {
     const currentState = this.num.getAndRequireEquals();
     currentState.assertLessThan(100);
 
+    // this method will create an account for the address
     let account = Account(address, this.token.id);
 
     // need to be a new account
     account.isNew.getAndRequireEquals().assertTrue();
-
-    this.token.mint({ address, amount: 1 });
 
     this.num.set(currentState.add(1));
   }

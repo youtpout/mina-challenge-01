@@ -71,7 +71,7 @@ describe('Add', () => {
     expect(updatedNum).toEqual(Field(1));
   });
 
-  it('can add same address', async () => {
+  it("can't add same address", async () => {
     await localDeploy();
 
     const Local = Mina.LocalBlockchain({ proofsEnabled });
@@ -90,7 +90,5 @@ describe('Add', () => {
       zkApp.addAddress(newAccount.publicKey);
     });
     await expect(txn2).rejects.toThrow();
-    //await txn2.prove();
-    //await txn2.sign([senderKey, zkAppPrivateKey]).send();
   });
 });
