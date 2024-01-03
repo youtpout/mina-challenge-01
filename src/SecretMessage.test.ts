@@ -70,4 +70,27 @@ describe('Add', () => {
     console.log('updatedNum', updatedNum);
     expect(updatedNum).toEqual(Field(1));
   });
+
+  it('can add same address', async () => {
+    await localDeploy();
+
+    const Local = Mina.LocalBlockchain({ proofsEnabled });
+
+    const newAccount = Local.testAccounts[2];
+
+    // update transaction
+    const txn = await Mina.transaction(senderAccount, () => {
+      AccountUpdate.fundNewAccount(senderAccount);
+      zkApp.addAddress(newAccount.publicKey);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, zkAppPrivateKey]).send();
+
+    const txn2 = Mina.transaction(senderAccount, () => {
+      zkApp.addAddress(newAccount.publicKey);
+    });
+    await expect(txn2).rejects.toThrow();
+    //await txn2.prove();
+    //await txn2.sign([senderKey, zkAppPrivateKey]).send();
+  });
 });
