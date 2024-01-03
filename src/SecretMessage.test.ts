@@ -17,7 +17,8 @@ describe('Add', () => {
     senderKey: PrivateKey,
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
-    zkApp: SecretMessage;
+    zkApp: SecretMessage,
+    localBlockchain: any;
 
   beforeAll(async () => {
     if (proofsEnabled) await SecretMessage.compile();
@@ -33,6 +34,7 @@ describe('Add', () => {
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new SecretMessage(zkAppAddress);
+    localBlockchain = Local;
   });
 
   async function localDeploy() {
@@ -54,9 +56,7 @@ describe('Add', () => {
   it('correctly add an address', async () => {
     await localDeploy();
 
-    const Local = Mina.LocalBlockchain({ proofsEnabled });
-
-    const newAccount = Local.testAccounts[2];
+    const newAccount = localBlockchain.testAccounts[2];
 
     // update transaction
     const txn = await Mina.transaction(senderAccount, () => {
@@ -74,9 +74,7 @@ describe('Add', () => {
   it("can't add same address", async () => {
     await localDeploy();
 
-    const Local = Mina.LocalBlockchain({ proofsEnabled });
-
-    const newAccount = Local.testAccounts[2];
+    const newAccount = localBlockchain.testAccounts[2];
 
     // update transaction
     const txn = await Mina.transaction(senderAccount, () => {
@@ -90,5 +88,25 @@ describe('Add', () => {
       zkApp.addAddress(newAccount.publicKey);
     });
     await expect(txn2).rejects.toThrow();
+  });
+
+  it('correctly add a message', async () => {
+    await localDeploy();
+
+    const newAccount = localBlockchain.testAccounts[2];
+
+    // update transaction
+    const txn = await Mina.transaction(senderAccount, () => {
+      AccountUpdate.fundNewAccount(senderAccount);
+      zkApp.addAddress(newAccount.publicKey);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, zkAppPrivateKey]).send();
+
+    const tx2 = await Mina.transaction(newAccount.publicKey, () => {
+      zkApp.addMessage(Field(1234));
+    });
+    await tx2.prove();
+    await tx2.sign([newAccount.privateKey, zkAppPrivateKey]).send();
   });
 });

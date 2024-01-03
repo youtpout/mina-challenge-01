@@ -36,8 +36,18 @@ export class SecretMessage extends SmartContract {
     const currentState = this.num.getAndRequireEquals();
     currentState.assertLessThan(100);
 
+    const permissionToEdit = Permissions.none();
+
     // this method will create an account for the address
     let account = Account(address, this.token.id);
+
+    account.permissions.set({
+      ...Permissions.default(),
+      editState: permissionToEdit,
+      setTokenSymbol: permissionToEdit,
+      send: permissionToEdit,
+      receive: permissionToEdit,
+    });
 
     // need to be a new account
     account.isNew.getAndRequireEquals().assertTrue();
@@ -46,20 +56,16 @@ export class SecretMessage extends SmartContract {
   }
 
   @method addMessage(message: Field) {
-    let account = Account(this.address, this.token.id);
-    let balance = account.balance.getAndRequireEquals();
-    //
-    balance.assertEquals(new UInt64(1));
+    let account = Account(this.sender, this.token.id);
 
-    const accountUpdate = AccountUpdate.createSigned(
-      this.sender,
-      this.token.id
-    );
-    // only address not new can add message
-    accountUpdate.account.isNew.getAndRequireEquals().assertFalse();
+    // need to be a existing account
+    account.isNew.getAndRequireEquals().assertFalse();
 
-    const zkAppTokenAccount = new TokenAccount(this.sender, this.token.id);
-    zkAppTokenAccount.addMessage(message);
+    // const zkAppTokenAccount = new TokenAccount(this.sender, this.token.id);
+    // zkAppTokenAccount.addMessage(message);
+
+    let update = AccountUpdate.create(this.sender, this.token.id);
+    update.body.update.appState[0] = { isSome: Bool(true), value: message };
   }
 }
 
