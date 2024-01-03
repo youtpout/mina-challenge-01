@@ -11,6 +11,7 @@ import {
   Permissions,
   Account,
   UInt64,
+  fetchAccount,
 } from 'o1js';
 
 export class SecretMessage extends SmartContract {
@@ -45,24 +46,26 @@ export class SecretMessage extends SmartContract {
     this.num.set(currentState.add(1));
   }
 
-  @method addMessage(address: PublicKey, message: Field) {
-    let account = Account(address, this.token.id);
-
+  @method addMessage(message: Field) {
+    let account = Account(this.sender, this.token.id);
     // need to be a existing account
     account.isNew.getAndRequireEquals().assertFalse();
 
-    let update = AccountUpdate.createSigned(address, this.token.id);
+    let update = AccountUpdate.createSigned(this.sender, this.token.id);
     update.body.update.appState[0] = { isSome: Bool(true), value: message };
+    update.body.update.appState[0].value.assertEquals(message);
+  }
+
+  @method check(address: PublicKey, value: Field) {
+    const update = AccountUpdate.createSigned(address, this.token.id);
+    update.body.preconditions.account.state[0] = { isSome: Bool(true), value };
   }
 }
 
-class TokenAccount extends SmartContract {
+export class TokenAccount extends SmartContract {
   @state(Field) value = State<Field>();
 
-  @method addMessage(value: Field) {
-    const oldValue = this.value.getAndRequireEquals();
-    // address can only deposit 1 message
-    oldValue.assertEquals(Field(0));
-    this.value.set(value);
+  @method empty() {
+    this.value.getAndRequireEquals();
   }
 }

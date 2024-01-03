@@ -1,5 +1,14 @@
-import { SecretMessage } from './SecretMessage';
-import { Field, Mina, PrivateKey, PublicKey, AccountUpdate } from 'o1js';
+import { SecretMessage, TokenAccount } from './SecretMessage';
+import {
+  Field,
+  Mina,
+  PrivateKey,
+  PublicKey,
+  AccountUpdate,
+  fetchAccount,
+  Account,
+  TokenId,
+} from 'o1js';
 
 /*
  * This file specifies how to test the `Add` example smart contract. It is safe to delete this file and replace
@@ -8,9 +17,9 @@ import { Field, Mina, PrivateKey, PublicKey, AccountUpdate } from 'o1js';
  * See https://docs.minaprotocol.com/zkapps for more info.
  */
 
-let proofsEnabled = false;
+let proofsEnabled = true;
 
-describe('Add', () => {
+describe('Secret Message', () => {
   let deployerAccount: PublicKey,
     deployerKey: PrivateKey,
     senderAccount: PublicKey,
@@ -21,7 +30,10 @@ describe('Add', () => {
     localBlockchain: any;
 
   beforeAll(async () => {
-    if (proofsEnabled) await SecretMessage.compile();
+    if (proofsEnabled) {
+      await TokenAccount.compile();
+      await SecretMessage.compile();
+    }
   });
 
   beforeEach(() => {
@@ -67,7 +79,6 @@ describe('Add', () => {
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
     const updatedNum = zkApp.num.get();
-    console.log('updatedNum', updatedNum);
     expect(updatedNum).toEqual(Field(1));
   });
 
@@ -104,9 +115,19 @@ describe('Add', () => {
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
     const tx2 = await Mina.transaction(newAccount.publicKey, () => {
-      zkApp.addMessage(newAccount.publicKey, Field(1234));
+      zkApp.addMessage(Field(1234));
+      zkApp.check(newAccount.publicKey, Field(1234));
     });
     await tx2.prove();
-    await tx2.sign([newAccount.privateKey, zkAppPrivateKey]).send();
+    await tx2.sign([newAccount.privateKey]).send();
+
+    await fetchAccount({
+      publicKey: newAccount.publicKey,
+      tokenId: zkApp.tokenId,
+    });
+    const msgInfo = new TokenAccount(newAccount.publicKey, zkApp.tokenId);
+    const value = msgInfo.value.get();
+    console.log('tokenId:', zkApp.tokenId);
+    console.log('Value:', value.toJSON());
   });
 });
