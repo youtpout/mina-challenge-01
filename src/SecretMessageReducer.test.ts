@@ -113,8 +113,9 @@ describe('Secret Message', () => {
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
+    const msg = Field(1234);
     const tx2 = await Mina.transaction(newAccount.publicKey, () => {
-      zkApp.addMessage(Field(1234));
+      zkApp.addMessage(msg);
     });
     await tx2.prove();
     await tx2.sign([newAccount.privateKey]).send();
@@ -123,11 +124,33 @@ describe('Secret Message', () => {
       publicKey: newAccount.publicKey,
       tokenId: zkApp.tokenId,
     });
-    const msgInfo = zkApp.reducer.getActions();
-    const value = msgInfo[0];
-    const toto = zkApp.getMessage(newAccount.publicKey);
-    console.log('tokenId:', zkApp.tokenId);
-    console.log('msgInfo:', value[0].address.toJSON());
-    console.log('toto:', toto.toJSON());
+    const msgReduce = zkApp.getMessage(newAccount.publicKey);
+    expect(msgReduce).toEqual(msg);
+  });
+
+  it("can't add 2 message", async () => {
+    await localDeploy();
+
+    const newAccount = localBlockchain.testAccounts[2];
+
+    // update transaction
+    const txn = await Mina.transaction(senderAccount, () => {
+      AccountUpdate.fundNewAccount(senderAccount);
+      zkApp.addAddress(newAccount.publicKey);
+    });
+    await txn.prove();
+    await txn.sign([senderKey, zkAppPrivateKey]).send();
+
+    const msg = Field(1234);
+    const tx2 = await Mina.transaction(newAccount.publicKey, () => {
+      zkApp.addMessage(msg);
+    });
+    await tx2.prove();
+    await tx2.sign([newAccount.privateKey]).send();
+
+    const tx3 = Mina.transaction(newAccount.publicKey, () => {
+      zkApp.addMessage(msg);
+    });
+    await expect(tx3).rejects.toThrow();
   });
 });

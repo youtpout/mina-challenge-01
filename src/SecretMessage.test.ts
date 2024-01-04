@@ -125,9 +125,9 @@ describe('Secret Message', () => {
       publicKey: newAccount.publicKey,
       tokenId: zkApp.tokenId,
     });
-    const msgInfo = new TokenAccount(newAccount.publicKey, zkApp.tokenId);
+    /*   const msgInfo = new TokenAccount(newAccount.publicKey, zkApp.tokenId);
     const value = msgInfo.value.get();
     console.log('tokenId:', zkApp.tokenId);
-    console.log('Value:', value.toJSON());
+    console.log('Value:', value.toJSON());*/
   });
 });

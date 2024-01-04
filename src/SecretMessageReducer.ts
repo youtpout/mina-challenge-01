@@ -72,16 +72,44 @@ export class SecretMessage extends SmartContract {
     // need to be a existing account
     account.isNew.getAndRequireEquals().assertFalse();
 
+    let initial = {
+      state: Bool(false),
+      actionState: Reducer.initialActionState,
+    };
+
+    let stateType = Bool;
+    let actions = this.reducer.getActions();
+
+    let { state, actionState } = this.reducer.reduce(
+      actions,
+      stateType,
+      (state: Bool, action: MessageInfo) =>
+        state.or(action.address.equals(this.sender)),
+      initial
+    );
+
+    // need to be the first time to add message for this address
+    state.assertFalse();
+
     const messageInfo = new MessageInfo({ address: this.sender, message });
     this.reducer.dispatch(messageInfo);
   }
 
   getMessage(address: PublicKey): Field {
     let actions = this.reducer.getActions();
-    let find = actions.find((x) => x.find((z) => z.address == address));
-    if (find) {
-      return find[0].message;
+
+    if (actions.length && actions[0].length) {
+      for (let index = 0; index < actions.length; index++) {
+        const elementX = actions[index];
+        for (let indexY = 0; indexY < elementX.length; indexY++) {
+          const elementY = elementX[indexY];
+          if (elementY.address.equals(address)) {
+            return elementY.message;
+          }
+        }
+      }
     }
+
     return Field(0);
   }
 }
