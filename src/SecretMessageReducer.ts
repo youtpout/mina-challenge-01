@@ -12,10 +12,31 @@ import {
   Account,
   UInt64,
   fetchAccount,
+  Reducer,
+  Struct,
+  Poseidon,
 } from 'o1js';
+
+class MessageInfo extends Struct({
+  address: PublicKey,
+  message: Field,
+}) {
+  constructor(value: { address: PublicKey; message: Field }) {
+    super(value);
+  }
+
+  hash(): Field {
+    return Poseidon.hash([
+      this.address.x,
+      this.address.isOdd.toField(),
+      this.message,
+    ]);
+  }
+}
 
 export class SecretMessage extends SmartContract {
   @state(Field) public num = State<Field>();
+  reducer = Reducer({ actionType: MessageInfo });
 
   init() {
     super.init();
@@ -38,10 +59,10 @@ export class SecretMessage extends SmartContract {
     currentState.assertLessThan(100);
 
     // this method will create an account for the address
-    const accountUpdate = this.token.mint({ address, amount: 1 });
+    let account = Account(address, this.token.id);
 
     // need to be a new account
-    accountUpdate.account.isNew.getAndRequireEquals().assertTrue();
+    account.isNew.getAndRequireEquals().assertTrue();
 
     this.num.set(currentState.add(1));
   }
@@ -51,21 +72,16 @@ export class SecretMessage extends SmartContract {
     // need to be a existing account
     account.isNew.getAndRequireEquals().assertFalse();
 
-    let update = AccountUpdate.createSigned(this.sender, this.token.id);
-    update.body.update.appState[0] = { isSome: Bool(true), value: message };
-    update.body.update.appState[0].value.assertEquals(message);
+    const messageInfo = new MessageInfo({ address: this.sender, message });
+    this.reducer.dispatch(messageInfo);
   }
 
-  @method check(address: PublicKey, value: Field) {
-    const update = AccountUpdate.createSigned(address, this.token.id);
-    update.body.preconditions.account.state[0] = { isSome: Bool(true), value };
-  }
-}
-
-export class TokenAccount extends SmartContract {
-  @state(Field) value = State<Field>();
-
-  @method empty() {
-    this.value.getAndRequireEquals();
+  getMessage(address: PublicKey): Field {
+    let actions = this.reducer.getActions();
+    let find = actions.find((x) => x.find((z) => z.address == address));
+    if (find) {
+      return find[0].message;
+    }
+    return Field(0);
   }
 }

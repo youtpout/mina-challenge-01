@@ -1,4 +1,4 @@
-import { SecretMessage, TokenAccount } from './SecretMessage';
+import { SecretMessage } from './SecretMessageReducer';
 import {
   Field,
   Mina,
@@ -31,7 +31,6 @@ describe('Secret Message', () => {
 
   beforeAll(async () => {
     if (proofsEnabled) {
-      await TokenAccount.compile();
       await SecretMessage.compile();
     }
   });
@@ -116,7 +115,6 @@ describe('Secret Message', () => {
 
     const tx2 = await Mina.transaction(newAccount.publicKey, () => {
       zkApp.addMessage(Field(1234));
-      zkApp.check(newAccount.publicKey, Field(1234));
     });
     await tx2.prove();
     await tx2.sign([newAccount.privateKey]).send();
@@ -125,9 +123,11 @@ describe('Secret Message', () => {
       publicKey: newAccount.publicKey,
       tokenId: zkApp.tokenId,
     });
-    const msgInfo = new TokenAccount(newAccount.publicKey, zkApp.tokenId);
-    const value = msgInfo.value.get();
+    const msgInfo = zkApp.reducer.getActions();
+    const value = msgInfo[0];
+    const toto = zkApp.getMessage(newAccount.publicKey);
     console.log('tokenId:', zkApp.tokenId);
-    console.log('Value:', value.toJSON());
+    console.log('msgInfo:', value[0].address.toJSON());
+    console.log('toto:', toto.toJSON());
   });
 });
