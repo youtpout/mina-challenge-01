@@ -61,7 +61,7 @@ describe('Secret Message', () => {
 
   it('generates and deploys the `SecretMessage` smart contract', async () => {
     await localDeploy();
-    const num = zkApp.num.get();
+    const num = zkApp.messageAdded.get();
     expect(num).toEqual(Field(0));
   });
 
@@ -78,7 +78,7 @@ describe('Secret Message', () => {
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
-    const updatedNum = zkApp.num.get();
+    const updatedNum = zkApp.accountAdded.get();
     expect(updatedNum).toEqual(Field(1));
   });
 

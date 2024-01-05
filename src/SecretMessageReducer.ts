@@ -38,8 +38,14 @@ class MessageInfo extends Struct({
 }
 
 export class SecretMessage extends SmartContract {
-  @state(Field) public num = State<Field>();
+  @state(Field) public accountAdded = State<Field>();
+  @state(Field) public messageAdded = State<Field>();
+
   reducer = Reducer({ actionType: MessageInfo });
+
+  events = {
+    'add-message': MessageInfo,
+  };
 
   init() {
     super.init();
@@ -54,11 +60,11 @@ export class SecretMessage extends SmartContract {
       receive: permissionToEdit,
     });
 
-    this.num.set(Field(0));
+    this.accountAdded.set(Field(0));
   }
 
   @method addAddress(address: PublicKey) {
-    const currentState = this.num.getAndRequireEquals();
+    const currentState = this.accountAdded.getAndRequireEquals();
     currentState.assertLessThan(100);
 
     // this method will create an account for the address
@@ -67,7 +73,7 @@ export class SecretMessage extends SmartContract {
     // need to be a new account
     account.isNew.getAndRequireEquals().assertTrue();
 
-    this.num.set(currentState.add(1));
+    this.accountAdded.set(currentState.add(1));
   }
 
   @method addMessage(message: Field) {
@@ -122,6 +128,11 @@ export class SecretMessage extends SmartContract {
 
     const messageInfo = new MessageInfo({ address: this.sender, message });
     this.reducer.dispatch(messageInfo);
+
+    this.emitEvent('add-message', messageInfo);
+
+    const currentState = this.messageAdded.getAndRequireEquals();
+    this.messageAdded.set(currentState.add(1));
   }
 
   getMessage(address: PublicKey): Field {
