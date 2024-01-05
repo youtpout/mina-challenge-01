@@ -15,6 +15,9 @@ import {
   Reducer,
   Struct,
   Poseidon,
+  Gadgets,
+  Provable,
+  Circuit,
 } from 'o1js';
 
 class MessageInfo extends Struct({
@@ -71,6 +74,32 @@ export class SecretMessage extends SmartContract {
     let account = Account(this.sender, this.token.id);
     // need to be a existing account
     account.isNew.getAndRequireEquals().assertFalse();
+
+    // flag check
+
+    // If flag 1 is true, then all other flags must be false
+    let flag1 = Field(0b111111);
+    let flagAnd = Gadgets.and(message, flag1, 6);
+    flagAnd.assertLessThanOrEqual(Field(0b100000));
+
+    // If flag 2 is true, then flag 3 must also be true.
+    let flag2 = Field(0b010000);
+    let flag22 = Field(0b001000);
+    let flag2check = Gadgets.and(message, flag2, 6);
+    let flag2check2 = Gadgets.and(message, flag22, 6);
+
+    let flag2Result = Provable.if<Bool>(
+      flag2check.greaterThan(0),
+      flag2check2.greaterThan(0),
+      Bool(true)
+    );
+
+    flag2Result.assertTrue();
+
+    // If flag 4 is true, then flags 5 and 6 must be false.
+    let flag3 = Field(0b000111);
+    let flag3Check = Gadgets.and(message, flag1, 6);
+    flag3Check.assertLessThanOrEqual(Field(0b000100));
 
     let initial = {
       state: Bool(false),

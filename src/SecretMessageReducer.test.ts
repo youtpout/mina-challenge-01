@@ -1,3 +1,4 @@
+import { Gadgets } from 'o1js/dist/node/lib/gadgets/gadgets';
 import { SecretMessage } from './SecretMessageReducer';
 import {
   Field,
@@ -113,7 +114,11 @@ describe('Secret Message', () => {
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
-    const msg = Field(1234);
+    let msg = Field(1234);
+    msg = Gadgets.and(msg, Field(0b100000), 6);
+
+    console.log('msg', msg.toJSON());
+
     const tx2 = await Mina.transaction(newAccount.publicKey, () => {
       zkApp.addMessage(msg);
     });
@@ -141,7 +146,8 @@ describe('Secret Message', () => {
     await txn.prove();
     await txn.sign([senderKey, zkAppPrivateKey]).send();
 
-    const msg = Field(1234);
+    let msg = Field(1234);
+    msg = Gadgets.and(msg, Field(0b100000), 6);
     const tx2 = await Mina.transaction(newAccount.publicKey, () => {
       zkApp.addMessage(msg);
     });
