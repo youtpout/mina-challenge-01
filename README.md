@@ -1,6 +1,6 @@
 # Mina zkApp: Mina Challenge 01
 
-This template uses TypeScript.
+The challenge is resolved in the code of SecretMessageReducer.ts
 
 ## How to build
 
